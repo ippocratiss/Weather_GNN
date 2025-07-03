@@ -8,7 +8,7 @@ class Weather_GNN(torch.nn.Module):
   def __init__(self,In,HGRU,HGNN,Out,Ts):
     super(Weather_GNN,self).__init__()
     # Convolution Layers
-    self.gru = GRU(In,HGRU,batch_first=True)
+    self.gru = GRU(In,HGRU,num_layers=2,batch_first=True)
     self.conv1 = GATConv(HGRU,HGNN)
     self.conv2 = GATConv(HGNN,HGNN)
     self.time_step = Ts

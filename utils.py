@@ -101,6 +101,40 @@ def eval(loader, model,nfeat,psteps,loss_fn, device):
     #rmse = np.sqrt(mean_squared_error(targets,preds))
     return (r2,total_loss/len(loader))
 
+def predict(graph, model,nfeat,psteps, device):
+    model.eval()
+    preds = []
+    targets = []
+    total_loss = 0
+    graph = [graph]
+    with torch.no_grad():
+        for batch in graph:
+            batch = batch.to(device)
+            x_series = batch.x
+            num_nodes = batch.num_nodes
+            predictions = []
+            inputs = x_series.view(num_nodes, -1, nfeat)
+            for _ in range(psteps):
+                x = inputs.view(num_nodes,-1)
+                out = model(x,batch.edge_index)
+                predictions.append(out)
+                out_unsq = out.unsqueeze(1)
+                inputs = torch.cat([inputs[:, 1:], out_unsq], dim=1)
+            pred_series = torch.stack(predictions,1)
+            #print("batch.y.shape =", batch.y.shape)
+            #print('batch.y.shape = ', batch.y.shape)
+            target_series = batch.y.view(num_nodes,psteps,nfeat).to(device)
+            #loss = loss_fn(pred_series, target_series)
+            #total_loss += loss.item()
+            preds.append(pred_series.detach().cpu())
+            targets.append(target_series.detach().cpu())
+    preds = torch.cat(preds, dim=0).numpy()
+    targets = torch.cat(targets, dim=0).numpy()
+    r2 = r2_score(targets.reshape(-1, targets.shape[-1]),
+                  preds.reshape(-1, preds.shape[-1]))
+    #rmse = np.sqrt(mean_squared_error(targets,preds))
+    return (r2,preds,targets)
+
 def Epoch_Plots(t_loss,v_loss,r2,LR):
     e = np.arange(len(r2))
     fig,ax = plt.subplots(2,2)

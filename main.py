@@ -10,12 +10,12 @@ import torch
 #Collect and prepare data. 
 start = datetime(2023,1,1)
 end = datetime(2025,1,1)
-features = ['temp','pres','rhum']
+features = ['temp','pres']
 pred_window = 6
 stations_df = Get_UK_Stations()
 Weather_data = Gather_Data(stations_df,start,end,features)
 print(f'Collectd dada from {len(Weather_data.keys())} stations...\n')
-Weather_data = Normalise(Weather_data,features) 
+Weather_data ,_ = Normalise(Weather_data,features) 
 SIDs = list(Weather_data.keys())
 edge_index = Connect_Graph(stations_df,SIDs,3)
 Graph = Build_Graph(Weather_data,edge_index,pred_window) 
@@ -28,17 +28,18 @@ print(f"Using device: {device}\n")
 
 #Define the model
 time_step = 7
-n_feat = 3
+n_feat = len(features)
+print(len(next(iter(Weather_data.values()))))
 model = Weather_GNN(n_feat,
-                    64,128,
+                    256,64,
                     n_feat,time_step).to(device)
 
 optimizer = torch.optim.NAdam(model.parameters(), lr=2*10**-4)
-loss_fn = torch.nn.MSELoss()
+loss_fn = torch.nn.L1Loss()
 #define Training, Validation and test sets
-train_loader = DataLoader(Graph[:11500], batch_size=14, shuffle=True)
-val_loader = DataLoader(Graph[12000:13000],batch_size = 14)
-test_loader = DataLoader(Graph[17000:], batch_size=1)
+train_loader = DataLoader(Graph[:14600], batch_size=64, shuffle=True)
+val_loader = DataLoader(Graph[14600:17000],batch_size = 64)
+
 #reduce LR if needed
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.8,threshold=10**-3)
 #Training Loop 
@@ -49,8 +50,13 @@ vLoss = []
 r2vals = []
 l_r = []
 tstep = 6
-N_features = 3
+N_features = n_feat
+earlystop = 0 
+print('number of features:',n_feat)
 for epoch in range(epochs):
+    if earlystop == 7:
+        print(f'Training stopped at Epoch {epoch+1}')
+        break
     train_loss = train(train_loader, model,
                              optimizer, loss_fn,N_features,
                              tstep,device)
@@ -59,11 +65,13 @@ for epoch in range(epochs):
     if val_loss < best_val_loss:
         best_val_loss = val_loss
         torch.save(model.state_dict(), 'best_model.pt')
+        earlystop = 0 
     scheduler.step(val_loss)
     tLoss.append(train_loss)
     vLoss.append(val_loss)
     r2vals.append(r2)
     l_r.append(scheduler.get_last_lr()[0])
+    earlystop +=1
     print(f'EPOCH {epoch+1}:')
     print(f'    Training Loss = {train_loss:.5f}\n    Validation Loss = {val_loss:.5f}\n    r^2 Score = {r2:.5f}')
     print(f'    LR = {scheduler.get_last_lr()[0]:.4e}')

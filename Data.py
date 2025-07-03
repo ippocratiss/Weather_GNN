@@ -41,10 +41,12 @@ def Gather_Data(sts_df, start,end,feats):
 
 def Normalise(Weather_Data,feats):
     #Normalise Data 
-    scaler = MinMaxScaler()
+    scalers = {}
     for ID in Weather_Data:
+        scaler = MinMaxScaler()
         Weather_Data[ID][feats] = scaler.fit_transform(Weather_Data[ID][feats])
-    return Weather_Data 
+        scalers[ID] = scaler
+    return Weather_Data,scalers 
 
 def Connect_Graph(sts_df,SID,nearest):
     #connect each node to its N nearest edges 
@@ -111,5 +113,17 @@ def Build_Graph(Weather_Data,edge_index,p_window):
         
     return graph_data_list 
 
+def denormalise(data,scaler):
+    return scaler.inverse_transform(data) 
 
-
+def find_station_id(sts_df,name,SIDs):
+    station = sts_df[sts_df['name'].str.contains(name,case=False,na=False)]
+    l = len(station)
+    if not station.empty:
+        for i in range(l):
+            if station.iloc[i]['id'] in SIDs:
+                return [station.iloc[i]['id'],station.iloc[i]['name']]
+            
+    else:
+        print(f'No matches for{name}')
+        return None 
