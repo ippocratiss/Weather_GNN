@@ -1,9 +1,12 @@
+import matplotlib
+matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt 
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature 
 import torch 
 from sklearn.metrics import r2_score
 import numpy as np 
+
 def Visualise_Graph(Weather_data,sts_df,edge_index,Station_ids):
     station_coords = {
     row['id']: (row['latitude'], row['longitude'])
@@ -45,24 +48,14 @@ def train(loader, model, optimizer, loss_fn,nfeat,pstep,device):
     total_loss = 0
     for batch in loader:
         batch = batch.to(device)
-        time_steps = batch.x.size(1) // nfeat
-        num_nodes = batch.num_nodes
-        #print('time_steps=',time_steps)
+        x_series = batch.x
         optimizer.zero_grad()
-        x_series = batch.x.reshape(num_nodes, time_steps, nfeat)
-        loss = 0
-        targets = batch.y.size(1) // nfeat
-        for stp in range(targets):
-            x = x_series.reshape(num_nodes,-1)
-            out = model(x, batch.edge_index)
-            target = batch.y[:, stp * nfeat:(stp + 1) * nfeat]
-            #Put Prediction into the sequence
-            #print(f"out: {out.shape}, target: {target.shape}, y: {batch.y.shape}, step={stp}")
-            loss += loss_fn(out, target)
-            pred_reshaped = out.unsqueeze(1)
-            x_series = torch.cat([x_series[:, 1:]
-                                  ,pred_reshaped], dim=1)
-        loss.backward(retain_graph = False)
+        num_nodes = batch.num_nodes
+        x_series = x_series.reshape(num_nodes,-1)
+        out = model(x_series,batch.edge_index,batch.edge_attr)
+        target = batch.y.view(num_nodes,pstep,nfeat).to(device)
+        loss = loss_fn(out,target)
+        loss.backward()
         optimizer.step()
         total_loss += loss.item()
     return total_loss / len(loader)
@@ -76,28 +69,18 @@ def eval(loader, model,nfeat,psteps,loss_fn, device):
     with torch.no_grad():
         for batch in loader:
             batch = batch.to(device)
-            x_series = batch.x
             num_nodes = batch.num_nodes
-            predictions = []
-            inputs = x_series.view(num_nodes, -1, nfeat)
-            for _ in range(psteps):
-                x = inputs.view(num_nodes,-1)
-                out = model(x,batch.edge_index)
-                predictions.append(out)
-                out_unsq = out.unsqueeze(1)
-                inputs = torch.cat([inputs[:, 1:], out_unsq], dim=1)
-            pred_series = torch.stack(predictions,1)
-            #print("batch.y.shape =", batch.y.shape)
-            #print('batch.y.shape = ', batch.y.shape)
+            x_series = batch.x.view(num_nodes,-1)
             target_series = batch.y.view(num_nodes,psteps,nfeat).to(device)
-            loss = loss_fn(pred_series, target_series)
+            out = model(x_series,batch.edge_index,batch.edge_attr)
+            loss = loss_fn(out,target_series)
             total_loss += loss.item()
-            preds.append(pred_series.detach().cpu())
-            targets.append(target_series.detach().cpu())
-    preds = torch.cat(preds, dim=0).numpy()
-    targets = torch.cat(targets, dim=0).numpy()
-    r2 = r2_score(targets.reshape(-1, targets.shape[-1]),
-                  preds.reshape(-1, preds.shape[-1]))
+            preds.append(out.cpu())
+            targets.append(target_series.cpu())
+    preds = torch.cat(preds,dim=0).numpy()
+    targs = torch.cat(targets,dim=0).numpy()
+    r2 = r2_score(targs.reshape(-1, 2),
+                  preds.reshape(-1,2))
     #rmse = np.sqrt(mean_squared_error(targets,preds))
     return (r2,total_loss/len(loader))
 
@@ -105,36 +88,15 @@ def predict(graph, model,nfeat,psteps, device):
     model.eval()
     preds = []
     targets = []
-    total_loss = 0
-    graph = [graph]
     with torch.no_grad():
-        for batch in graph:
-            batch = batch.to(device)
-            x_series = batch.x
-            num_nodes = batch.num_nodes
-            predictions = []
-            inputs = x_series.view(num_nodes, -1, nfeat)
-            for _ in range(psteps):
-                x = inputs.view(num_nodes,-1)
-                out = model(x,batch.edge_index)
-                predictions.append(out)
-                out_unsq = out.unsqueeze(1)
-                inputs = torch.cat([inputs[:, 1:], out_unsq], dim=1)
-            pred_series = torch.stack(predictions,1)
-            #print("batch.y.shape =", batch.y.shape)
-            #print('batch.y.shape = ', batch.y.shape)
-            target_series = batch.y.view(num_nodes,psteps,nfeat).to(device)
-            #loss = loss_fn(pred_series, target_series)
-            #total_loss += loss.item()
-            preds.append(pred_series.detach().cpu())
-            targets.append(target_series.detach().cpu())
-    preds = torch.cat(preds, dim=0).numpy()
-    targets = torch.cat(targets, dim=0).numpy()
-    r2 = r2_score(targets.reshape(-1, targets.shape[-1]),
-                  preds.reshape(-1, preds.shape[-1]))
+        num_nodes = graph.num_nodes
+        x_series = graph.x.view(num_nodes,-1)
+        target_series = graph.y.view(num_nodes,psteps,nfeat).to(device)
+        out = model(x_series,graph.edge_index,graph.edge_attr)
+    preds = out.cpu().numpy()
+    targs = target_series.cpu().numpy()
     #rmse = np.sqrt(mean_squared_error(targets,preds))
-    return (r2,preds,targets)
-
+    return (preds,targs)
 def Epoch_Plots(t_loss,v_loss,r2,LR):
     e = np.arange(len(r2))
     fig,ax = plt.subplots(2,2)
@@ -147,3 +109,4 @@ def Epoch_Plots(t_loss,v_loss,r2,LR):
     ax[1,1].plot(e,LR)
     ax[1,1].set_title('Learning Rate')
     plt.show()
+

@@ -10,6 +10,14 @@ def Get_UK_Stations():
     sts = Stations().fetch()
     return sts[sts['country'] == 'GB'].reset_index()
 
+def encode_time(df):
+    hr = df.index.hour
+    day = df.index.dayofyear
+    df['sinHR'] = np.sin(2*np.pi * (hr/24))
+    df['cosHR'] = np.cos(2*np.pi * (hr/24))
+    df['sinDAY'] = np.sin(2*np.pi * (day/365.25))
+    df['cosDAY'] = np.cos(2*np.pi * (day/365.25))
+    return df
 def Fetch_Station_Data(SID,start,end,features,length):
     try:
         #Ensure that each dataset for each ID has complete data
@@ -56,7 +64,7 @@ def Connect_Graph(sts_df,SID,nearest):
                    if row['id'] in SID
                    } 
     edge_index = []
-    #edge_attr = [] 
+    edge_attr = [] 
     for ID in SID:
         dists = []
         lat1,lon1 = coordinates[ID]
@@ -72,30 +80,30 @@ def Connect_Graph(sts_df,SID,nearest):
             i,j = int(id_idx[ID]),int(id_idx[ID3[1]])
             edge_index.append([i,j])
             edge_index.append([j,i])
-            #edge_attr.append([ID3[0]])            
-            #edge_attr.append([ID3[0]])
+            edge_attr.append([ID3[0]])            
+            edge_attr.append([ID3[0]])
     edge_index = np.array(edge_index,dtype=np.int64)
     edge_index = torch.tensor(edge_index,dtype=torch.long).t().contiguous() 
 
     #The below lines can be uncommented in edge_attr is wanted...  
-    #scaler = MinMaxScaler()
-    #edge_attr = np.array(edge_attr,dtype=np.float32)
-    #edge_attr = scaler.fit_transform(edge_attr)
-    #edge_attr = torch.tensor(edge_attr, dtype=torch.float)
+    scaler = MinMaxScaler()
+    edge_attr = np.array(edge_attr,dtype=np.float32)
+    edge_attr = scaler.fit_transform(edge_attr)
+    edge_attr = torch.tensor(edge_attr, dtype=torch.float)
 
-    return edge_index
+    return edge_index,edge_attr
 
-def Build_Graph(Weather_Data,edge_index,p_window):
+def Build_Graph(Weather_Data,edge_index,edge_attr,p_window,lookback):
     #input node features as time sequence for GRU 
     n_hrs = len(next(iter(Weather_Data.values())))
     station_ids = list(Weather_Data.keys())
     graph_data_list = []
-    for T in range(p_window, n_hrs-6):
+    for T in range(lookback, n_hrs-p_window):
         Xnode = []
         Ynode = []
         for SID in station_ids:
             df = Weather_Data[SID]
-            Window = df.iloc[T - p_window:T+1].values
+            Window = df.iloc[T - lookback:T+1].values
             Target = df.iloc[T+1:(T+1)+p_window].values
             Xnode.append(Window.flatten())
             Ynode.append(Target.flatten())
@@ -103,7 +111,7 @@ def Build_Graph(Weather_Data,edge_index,p_window):
         Ynode = np.array(Ynode)
         X = torch.tensor(Xnode, dtype=torch.float)
         Y = torch.tensor(Ynode, dtype=torch.float)
-        graph = Data(x=X, edge_index=edge_index, y=Y.clone())
+        graph = Data(x=X, edge_index=edge_index,edge_attr=edge_attr, y=Y.clone())
         graph_data_list.append(graph)
 
         #the shape of each graph should be as follows...
