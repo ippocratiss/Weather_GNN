@@ -19,7 +19,7 @@ Weather_data = Gather_Data(stations_df,start,end,features)
 print(f'Collectd dada from {len(Weather_data.keys())} stations...\n')
 Weather_data ,_ = Normalise(Weather_data,features) 
 SIDs = list(Weather_data.keys())
-edge_index,edge_attr = Connect_Graph(stations_df,SIDs,5)
+edge_index,edge_attr = Connect_Graph(stations_df,SIDs,6)
 Graph = Build_Graph(Weather_data,edge_index,edge_attr,pred_window,lookback) 
 #Visualise_Graph(Weather_data,stations_df,edge_index,SIDs)
 
@@ -32,7 +32,7 @@ print(f"Using device: {device}\n")
 time_step = 49
 n_feat = len(features)
 print(f'Length of data: {len(next(iter(Weather_data.values())))} Hrs \n')
-model = Weather_GNN(n_feat,128,
+model = Weather_GNN(n_feat,256,
                     len(features)*pred_window,time_step).to(device)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1*10**-4,weight_decay=0.1)

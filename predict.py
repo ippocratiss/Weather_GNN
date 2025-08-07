@@ -29,7 +29,7 @@ Graph = Build_Graph(Weather_data,edge_index,edge_attr,pred_window,lookback)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 time_step = 49
 n_feat = len(features) 
-model = Weather_GNN(n_feat,128, len(features)*pred_window, time_step).to(device)
+model = Weather_GNN(n_feat,256, len(features)*pred_window, time_step).to(device)
 model.load_state_dict(torch.load('best_model.pt'))
 test_graph = Graph[-2].to(device)
 pred,targ = predict(test_graph,model,n_feat,pred_window,device)
