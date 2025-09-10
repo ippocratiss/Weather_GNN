@@ -14,9 +14,9 @@ source .venv/bin/activate    # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 2) Train
-```bash
+
 python main.py
-```
+
 Creates:
 
     best_model.pt
