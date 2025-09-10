@@ -86,7 +86,8 @@ To tune hyperparameters, edit the values directly in `main.py`. Key parameters i
   To save plots, you can modify `Epoch_Plots` in `utils.py` to call `plt.savefig('path/to/plot.png')` before `plt.show()`.
 
 - **Prediction and Residual Plots:**  
-  When running `predict.py`, plots are generated for the forecast and residuals for each station you specify. These also use `plt.show()` for interactive viewing and are not saved by default. You can add `plt.savefig('path/to/plot.png')` in `predict.py` after generating each plot to save figures to disk.
+  When running `predict.py`, plots are generated for the forecast and residuals for each station you specify. These also use `plt.show()` for interactive viewing and are not saved by default. You can add `plt.savefig('path/to/plot.png')` in `predict.py` after generating each plot to save figures to disk. 
+  
 **Notes:**
 To get predictions for a specific station you can add/remove names given in the `station_names` list located in predicit.py.
 ## Requirements
