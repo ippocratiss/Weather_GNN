@@ -1,10 +1,13 @@
-# UK Weather Prediction (1D Convolution + GNN)
+# UK Weather Prediction (0D Convolution + GNN)
 
-Forecast UK station features (e.g., temperature, pressure) for the next _N_ hours using per-station temporal Conv1d and a k-NN station graph with GATv2.
+Forecast UK temperature and pressure.
+The model consists of 1d convolution layer that feeds in to graph neural network. 
+The model collects data from the meteostat api, the number of stations availabl
+is dependent on consistancy of reporting from each station. 
 
 ---
 
-## 1) Install
+1) Install
 ```bash
 python -m venv .venv
 source .venv/bin/activate    # Windows: .venv\Scripts\activate
@@ -61,41 +64,3 @@ Requirements
     meteostat, geopy, scikit-learn, numpy, pandas, matplotlib, joblib
 
 (Install via pip install -r requirements.txt.)
-Notes
-
-    No leakage: scalers are fit on the training slice and saved to preproc.joblib; inference only transforms.
-
-    Model output shape: (nodes, pred_window, n_features).
-
-You said:
-why do you put the 3) predict like headers out of the boxes can you write one i can copy
-ChatGPT said:
-
-Gotcha — here’s a clean, minimal README you can copy-paste as is. The headers are outside the code blocks; only commands are inside.
-
-# UK Weather Prediction (1D Convolution + GATv2)
-
-Forecast UK station features (e.g., temperature, pressure) for the next _N_ hours using per-station Conv1d and a k-NN station graph with GATv2.
-
-## 1) Install
-```bash
-python -m venv .venv
-source .venv/bin/activate    # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-2) Train
-
-python main.py
-
-3) Predict
-
-python predict.py
-
-Project layout
-
-main.py       # training pipeline
-predict.py    # inference + plots
-model.py      # model (Conv1d branches + GATv2)
-data.py       # data fetch, scaling, graph build
-utils.py      # train/eval, metrics, plotting
-requirements.txt
