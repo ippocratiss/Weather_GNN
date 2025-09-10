@@ -7,7 +7,7 @@ is dependent on consistancy of reporting from each station.
 
 ---
 
-1) Install
+## 1) Install
 ```bash
 python -m venv .venv
 source .venv/bin/activate    # Windows: .venv\Scripts\activate
@@ -22,7 +22,7 @@ Creates:
     best_model.pt
 
     preproc.joblib (per-station scalers + metadata)
-```
+
 ## 3) Predict
 ```bash  
 python predict.py
