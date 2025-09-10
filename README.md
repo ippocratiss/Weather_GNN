@@ -1,66 +1,112 @@
-# UK Weather Prediction (0D Convolution + GNN)
+# Weather_GNN
 
-Forecast UK temperature and pressure.
-The model consists of 1d convolution layer that feeds in to graph neural network. 
-The model collects data from the meteostat api, the number of stations availabl
-is dependent on consistancy of reporting from each station. 
+Weather_GNN is a Python project for weather forecasting using Graph Neural Networks (GNNs). This repository contains code for data pre-processing, model definition, training, prediction, and visualization of results. 
 
----
+## Features
 
-## 1) Install
-```bash
-python -m venv .venv
-source .venv/bin/activate    # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-## 2) Train
-```bash
- python main.py
-```
-Creates:
+- Data handling and preprocessing for weather datasets
+- GNN-based model for spatial-temporal weather prediction
+- Prediction utilities for running inference on new data
+- Visualization tools for analyzing and plotting results
 
-    best_model.pt
+## Directory Structure
 
-    preproc.joblib (per-station scalers + metadata)
+- `main.py` - Assemble graph structure, configure and implement training.
+- `model.py` - Model architecture and related neural network code
+- `Data.py` - Dataset and data loader definitions
+- `predict.py` - Tools for running predictions and generating plots
+- `utils.py` - Utility functions for training, evaluation, and plotting
+- `requirements.txt` - List of required Python packages
+- `preproc.joblib` - Preprocessing pipeline (serialized)
+- `plots/` - Output directory for generated plots
 
-## 3) Predict
-```bash  
-python predict.py
-```
-Uses the saved scalers and model to generate plots.
-Configure (edit in main.py)
+## Installation
 
-    features (e.g., ['temp', 'pres'])
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/ippocratiss/Weather_GNN.git
+   cd Weather_GNN
+   ```
 
-    lookback (hours history) → time_step = lookback + 1
+2. Install dependencies:
+   ```sh
+   pip install -r requirements.txt
+   ```
+   *Additional dependencies may be required for some features (e.g., PyTorch for GNNs).*
 
-    pred_window (hours ahead)
+## Usage
 
-    trainFrac (train split)
+- **Training the model:**
+  ```sh
+  python main.py
+  ```
+  This will create:
+  - `best_model.pt` (best model weights)
+  - `preproc.joblib` (per-station scalers & metadata)
 
-    date range (start, end)
+- **Running predictions:**
+  ```sh
+  python predict.py
+  ```
+  This will use the saved scalers and model to generate plots.
 
-    graph size: Connect_Graph(..., nearest=5)
+## Configuring Hyperparameters
 
-    Keep the same values in predict.py. It loads preproc.joblib and does not refit scalers.
+To tune hyperparameters, edit the values directly in `main.py`. Key parameters include:
 
-Project layout
+- `features` (list): Weather features to use, e.g., `['temp', 'pres']`
+- `lookback`: Number of hours of history to use (affects input window)
+- `pred_window`: Number of hours ahead to predict
+- `trainFrac`: Fraction of data used for training (rest is validation)
+- `start`, `end`: Date range for data
+- `epochs`: Number of training epochs (e.g., `epochs = 300`)
+- `batch_size`: Set in the DataLoader, e.g., `batch_size=10`
+- `learning rate`: Set in the optimizer, e.g., `optimizer = torch.optim.AdamW(..., lr=2*10**-4, ...)`
+- `nearest`: Number of nearest neighbors for graph construction (in `Connect_Graph`)
 
-main.py       # training pipeline
-predict.py    # inference + plots
-model.py      # model (Conv1d branches + GATv2)
-data.py       # data fetch, scaling, graph build
-utils.py      # train/eval, metrics, plotting
-requirements.txt
+**Notes:**  
+- The same preprocessing and feature configuration is loaded in `predict.py` via `preproc.joblib`. If you change the features, lookback, or pred_window, retrain the model and regenerate `preproc.joblib`.
+- full list of features and details on api can be found at https://dev.meteostat.net/python/
+- All hyperparameters listed above are found in main.py. 
+## Plotting and Saving Paths
 
-Requirements
+- **Model Checkpoints:**  
+  The best model is saved as `best_model.pt` in the repository root whenever validation loss improves during training (`main.py`).
 
-    Python 3.9–3.11
+- **Preprocessing:**  
+  The preprocessing metadata and scalers are saved as `preproc.joblib` in the root.
 
-    PyTorch ≥ 2.0 (if you use padding='same', need ≥ 1.10)
+- **Training Plots:**  
+  At the end of training, the function `Epoch_Plots` (from `utils.py`) is called, which displays the following plots:
+    - Training Loss
+    - Validation Loss
+    - R² Score
+    - Learning Rate
+  These plots are displayed interactively using `matplotlib.pyplot.show()` and are **not** saved to disk by default.
+  To save plots, you can modify `Epoch_Plots` in `utils.py` to call `plt.savefig('path/to/plot.png')` before `plt.show()`.
 
-    PyTorch Geometric (matching your PyTorch/CUDA)
+- **Prediction and Residual Plots:**  
+  When running `predict.py`, plots are generated for the forecast and residuals for each station you specify. These also use `plt.show()` for interactive viewing and are not saved by default. You can add `plt.savefig('path/to/plot.png')` in `predict.py` after generating each plot to save figures to disk.
+**Notes:**
+To get predictions for a specific station you can add/remove names given in the `station_names` list located in predicit.py.
+## Requirements
 
-    meteostat, geopy, scikit-learn, numpy, pandas, matplotlib, joblib
+See `requirements.txt` for a complete list. Typical requirements include:
+- Python 3.7+
+- numpy
+- pandas
+- torch (PyTorch ≥2.0)
+- torch-geometric (version matching your torch install)
+- scikit-learn
+- matplotlib
+- meteostat
+- geopy
+- joblib
 
-(Install via pip install -r requirements.txt.)
+## License
+
+This repository is a private fork. Refer to the upstream [B-Ruggles/Weather_GNN](https://github.com/B-Ruggles/Weather_GNN) for original licensing.
+
+## Acknowledgements
+
+Adapted from [B-Ruggles/Weather_GNN](https://github.com/B-Ruggles/Weather_GNN).
