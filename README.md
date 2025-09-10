@@ -7,23 +7,24 @@ is dependent on consistancy of reporting from each station.
 
 ---
 
-1) Install
-```bash
-python -m venv .venv
-source .venv/bin/activate    # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+## 1) Install
+	```bash
+	python -m venv .venv
+	source .venv/bin/activate    # Windows: .venv\Scripts\activate
+	pip install -r requirements.txt
 ```
-2) Train
+## 2) Train
 
+```bash 
 python main.py
-
+```
 Creates:
 
     best_model.pt
 
     preproc.joblib (per-station scalers + metadata)
 
-3) Predict
+## 3) Predict
 ```bash 
 python predict.py
 ```
