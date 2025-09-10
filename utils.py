@@ -47,20 +47,23 @@ def train(loader, model, optimizer, loss_fn,nfeat,pstep,device):
     model.train()
     total_loss = 0
     for batch in loader:
+        #load batch and fetch input data. 
         batch = batch.to(device)
         x_series = batch.x
         optimizer.zero_grad()
         num_nodes = batch.num_nodes
         x_series = x_series.reshape(num_nodes,-1)
         out = model(x_series,batch.edge_index,batch.edge_attr)
+
+        #load targets and updata weights. 
         target = batch.y.view(num_nodes,pstep,nfeat).to(device)
-        loss = loss_fn(out,target)
+        loss = loss_fn(out,target) 
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
     return total_loss / len(loader)
-#Validation / Test function
 
+#function for validation set during training.
 def eval(loader, model,nfeat,psteps,loss_fn, device):
     model.eval()
     preds = []
@@ -81,9 +84,8 @@ def eval(loader, model,nfeat,psteps,loss_fn, device):
     targs = torch.cat(targets,dim=0).numpy()
     r2 = r2_score(targs.reshape(-1, 2),
                   preds.reshape(-1,2))
-    #rmse = np.sqrt(mean_squared_error(targets,preds))
     return (r2,total_loss/len(loader))
-
+#function for predictions in predict.py
 def predict(graph, model,nfeat,psteps, device):
     model.eval()
     preds = []
@@ -95,8 +97,8 @@ def predict(graph, model,nfeat,psteps, device):
         out = model(x_series,graph.edge_index,graph.edge_attr)
     preds = out.cpu().numpy()
     targs = target_series.cpu().numpy()
-    #rmse = np.sqrt(mean_squared_error(targets,preds))
     return (preds,targs)
+#plot losses, r^2 score and learning rate at end of training. 
 def Epoch_Plots(t_loss,v_loss,r2,LR):
     e = np.arange(len(r2))
     fig,ax = plt.subplots(2,2)

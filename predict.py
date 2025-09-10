@@ -1,7 +1,7 @@
 from model import Weather_GNN
 import torch 
-from Data import (Get_UK_Stations, Fetch_Station_Data,Gather_Data,
-                  Normalise,Connect_Graph,Build_Graph,denormalise,
+from Data import (Get_UK_Stations,Gather_Data,
+                  Connect_Graph,Build_Graph,denormalise,
                   find_station_id) 
 from datetime import datetime
 from torch_geometric.loader import DataLoader
@@ -12,28 +12,44 @@ import matplotlib.pyplot as plt
 import numpy as np 
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, WhiteKernel
+import joblib
 
-start = datetime(2022,7,1)
+
+#load params from main.py 
+preproc = joblib.load("preproc.joblib")
+scalers = preproc["scalers"]
+features = preproc["features"]
+trained_SIDs = preproc["SIDs"]
+nearest = preproc["nearest"]
+time_step = preproc["time_step"]
+pred_window = preproc["pred_window"]
+
+
+#load graph for prediction 
+start = datetime(2020,1,1)
 end = datetime(2025,3,1)
-features = ['temp','pres']
-pred_window = 12
 lookback = 48
 stations_df = Get_UK_Stations()
 Weather_data = Gather_Data(stations_df,start,end,features)
 print(f'Collected data from {len(Weather_data.keys())} stations...\n')
-Weather_data,scalers = Normalise(Weather_data,features) 
 SIDs = list(Weather_data.keys())
-edge_index,edge_attr = Connect_Graph(stations_df,SIDs,3)
+
+for sid in Weather_data.keys():
+    Weather_data[sid][features] = scalers[sid].transform(Weather_data[sid][features].values)
+
+
+edge_index,edge_attr = Connect_Graph(stations_df,SIDs,nearest)
 Graph = Build_Graph(Weather_data,edge_index,edge_attr,pred_window,lookback) 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 time_step = 49
 n_feat = len(features) 
-model = Weather_GNN(n_feat,256, len(features)*pred_window, time_step).to(device)
+model = Weather_GNN(n_feat,128, len(features)*pred_window, time_step).to(device)
 model.load_state_dict(torch.load('best_model.pt'))
 test_graph = Graph[-2].to(device)
 pred,targ = predict(test_graph,model,n_feat,pred_window,device)
 
+#Add any valid uk station name below to get prediction. 
 station_names = ['london','bournemouth','glasgow']
 ids = []
 for n in station_names:

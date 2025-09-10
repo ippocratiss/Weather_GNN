@@ -8,3 +8,4 @@ scipy==1.16.0
 torch==2.7.1
 torch-geometric==2.6.1
 cartopy==0.24.1
+joblib==1.5.1

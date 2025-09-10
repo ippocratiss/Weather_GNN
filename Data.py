@@ -6,21 +6,16 @@ from sklearn.preprocessing import MinMaxScaler
 import pandas as pd 
 import numpy as np 
 def Get_UK_Stations():
-    #Get UK stations from meteostat api
+    #Get UK stations from meteostat 
     sts = Stations().fetch()
     return sts[sts['country'] == 'GB'].reset_index()
 
-def encode_time(df):
-    hr = df.index.hour
-    day = df.index.dayofyear
-    df['sinHR'] = np.sin(2*np.pi * (hr/24))
-    df['cosHR'] = np.cos(2*np.pi * (hr/24))
-    df['sinDAY'] = np.sin(2*np.pi * (day/365.25))
-    df['cosDAY'] = np.cos(2*np.pi * (day/365.25))
-    return df
+
 def Fetch_Station_Data(SID,start,end,features,length):
     try:
-        #Ensure that each dataset for each ID has complete data
+        #This function is called from Gather_data()
+        #Ensures that each dataset for each ID has complete data
+        #If data is incomplete the station is not used. 
         data = Hourly(SID,start,end).fetch().astype(float)
         if len(data) != length:
             return None, f'Station: {SID}, has incomplete data'
@@ -32,8 +27,8 @@ def Fetch_Station_Data(SID,start,end,features,length):
     except Exception as e:
         return None,f"Could not fetch data for {SID}: {e}"
     
-def Gather_Data(sts_df, start,end,feats):
-    length = len(Hourly('03761',start,end).fetch())
+def Gather_Data(sts_df,start,end,feats):
+    length = len(Hourly('03862',start,end).fetch())
     Weather_Data = {}
     bad_ids = []
     #collect usable data and store bad ID's 
@@ -47,14 +42,18 @@ def Gather_Data(sts_df, start,end,feats):
     print(f'{len(bad_ids)} stations could not be used... \n')
     return Weather_Data 
 
-def Normalise(Weather_Data,feats):
-    #Normalise Data 
+def Normalise_fit_on_train(Weather_Data, feats, train_end_idx):
+    #normalise data from training set and apply to all data.
     scalers = {}
-    for ID in Weather_Data:
+    for sid, df in Weather_Data.items():
         scaler = MinMaxScaler()
-        Weather_Data[ID][feats] = scaler.fit_transform(Weather_Data[ID][feats])
-        scalers[ID] = scaler
-    return Weather_Data,scalers 
+        # fit on training slice only
+        train_slice = df.iloc[:train_end_idx+1][feats].values  # +1 because iloc end is exclusive
+        scaler.fit(train_slice)
+        # transform full series
+        df[feats] = scaler.transform(df[feats].values)
+        scalers[sid] = scaler
+    return Weather_Data, scalers
 
 def Connect_Graph(sts_df,SID,nearest):
     #connect each node to its N nearest edges 
