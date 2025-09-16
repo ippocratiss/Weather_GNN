@@ -6,11 +6,20 @@ from sklearn.preprocessing import MinMaxScaler
 import pandas as pd 
 import numpy as np 
 def Get_UK_Stations():
-    #Get UK stations from meteostat 
+    #Get UK stations from meteostat api  
     sts = Stations().fetch()
     return sts[sts['country'] == 'GB'].reset_index()
 
-
+''' Args: 
+        SID: A list of station ids.
+        start: Start date of data collection.
+        end: End date of data collection.
+        features: list of weather features being collected.
+        length: number of hours collected. 
+    Returns:
+        Data if available. 
+        Error if data is missing.
+    '''
 def Fetch_Station_Data(SID,start,end,features,length):
     try:
         #This function is called from Gather_data()
@@ -26,6 +35,17 @@ def Fetch_Station_Data(SID,start,end,features,length):
         return data[features].copy().astype(float), None
     except Exception as e:
         return None,f"Could not fetch data for {SID}: {e}"
+
+
+''' This function is called from main.py, it collects station ids
+and the data from that station if available.
+    Args:
+        sts_df: Pandas DataFrame of UK stations.
+        start: Start date of hourly data collection
+        end: End date of hourly data collection
+        feats: list of weather features to be collected.
+    Returns:
+        Weather_Data: A dictionary of station data'''
     
 def Gather_Data(sts_df,start,end,feats):
     length = len(Hourly('03862',start,end).fetch())
@@ -39,10 +59,19 @@ def Gather_Data(sts_df,start,end,feats):
             Weather_Data[SID] = data
         else:
             bad_ids.append((SID,error))
+    #Output number stations that had bad data
     print(f'{len(bad_ids)} stations could not be used... \n')
     return Weather_Data 
 
-def Normalise_fit_on_train(Weather_Data, feats, train_end_idx):
+''' Normalize Data based on Training set.
+    Args:
+        Weater_Data: Dictionary of station data.
+        feats: list of weather features to be collected.
+        train_end_inx: index of last training data point.
+    Returns: 
+            Weather_Data: Scaled Dictionary of station data
+            scalers: scalers used for normalization.'''
+def Normalise(Weather_Data, feats, train_end_idx):
     #normalise data from training set and apply to all data.
     scalers = {}
     for sid, df in Weather_Data.items():
@@ -55,6 +84,15 @@ def Normalise_fit_on_train(Weather_Data, feats, train_end_idx):
         scalers[sid] = scaler
     return Weather_Data, scalers
 
+''' This function creates the edges between stations and saves
+    scaled distances between stations as edge attributes.
+    Args:
+        sts_df: pandas dataframe of stations.
+        SID: list of station Id's.
+        nearest: number of nearest staions each node is connected to
+    Returns:
+        edge_index: tensor of edges between stations.
+        edge_attribute: scaled distance between stations.'''
 def Connect_Graph(sts_df,SID,nearest):
     #connect each node to its N nearest edges 
     id_idx = {ID: idx for idx,ID in enumerate(SID)}
@@ -91,7 +129,16 @@ def Connect_Graph(sts_df,SID,nearest):
     edge_attr = torch.tensor(edge_attr, dtype=torch.float)
 
     return edge_index,edge_attr
-
+''' Build Graph cretes a list of tensors that contain station data, edges
+    and edge attributes. This is the list that will be used in training and testing.
+    Args: 
+        Weather_Data: dictionary of station data.
+        edge_index: tensor of edges between stations. 
+        edge_attributes: scaled distance betweeen stations.
+        p_window: length of time to be predicted.
+        lockback: how many past hours are used for prediction.
+    Returns:
+        graph_data_list: list of tensors containing station data.'''
 def Build_Graph(Weather_Data,edge_index,edge_attr,p_window,lookback):
     #input node features as time sequence for GRU 
     n_hrs = len(next(iter(Weather_Data.values())))
@@ -119,10 +166,22 @@ def Build_Graph(Weather_Data,edge_index,edge_attr,p_window,lookback):
         #graph.y = (num_nodes,p_window*n_features)
         
     return graph_data_list 
-
+''' Used in predict.py to unscale data and get real values 
+    of features. 
+    Args:
+        data: torch tensor of predicted values.
+        scaler: scalers created in normalize function.
+    Returns:
+        unscaled data'''
 def denormalise(data,scaler):
     return scaler.inverse_transform(data) 
 
+''' Used in predict.py to find ID's of stations.
+    Args:  
+        sts_df: pandas Dataframe of stations
+        SIDs: list of station id's
+    Returns:
+            [station id, station name] '''
 def find_station_id(sts_df,name,SIDs):
     station = sts_df[sts_df['name'].str.contains(name,case=False,na=False)]
     l = len(station)
@@ -134,3 +193,12 @@ def find_station_id(sts_df,name,SIDs):
     else:
         print(f'No matches for{name}')
         return None 
+
+def find_station_names(SIDs,sts_df):
+    names = []
+    count = 1
+    for id in SIDs:
+        station = sts_df[sts_df['id'] == id]['name'].iloc[0]
+        names.append(f'{station}')
+        count += 1 
+    return names

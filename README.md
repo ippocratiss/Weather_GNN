@@ -18,6 +18,7 @@ Weather_GNN is a Python project for weather forecasting using Graph Neural Netwo
 - `utils.py` - Utility functions for training, evaluation, and plotting
 - `requirements.txt` - List of required Python packages
 - `preproc.joblib` - Preprocessing pipeline (serialized)
+- 'stations.py' - Show station informatio and visualise GNN 
 - `plots/` - Output directory for generated plots
 
 ## Installation
@@ -35,6 +36,10 @@ Weather_GNN is a Python project for weather forecasting using Graph Neural Netwo
    *Additional dependencies may be required for some features (e.g., PyTorch for GNNs).*
 
 ## Usage
+- **Get list of stations:**
+  ```sh
+  python stations.py
+  ```
 
 - **Training the model:**
   ```sh
@@ -49,7 +54,6 @@ Weather_GNN is a Python project for weather forecasting using Graph Neural Netwo
   python predict.py
   ```
   This will use the saved scalers and model to generate plots.
-
 ## Configuring Hyperparameters
 
 To tune hyperparameters, edit the values directly in `main.py`. Key parameters include:
@@ -89,7 +93,8 @@ To tune hyperparameters, edit the values directly in `main.py`. Key parameters i
   When running `predict.py`, plots are generated for the forecast and residuals for each station you specify. These also use `plt.show()` for interactive viewing and are not saved by default. You can add `plt.savefig('path/to/plot.png')` in `predict.py` after generating each plot to save figures to disk. 
   
 **Notes:**
-To get predictions for a specific station you can add/remove names given in the `station_names` list located in predicit.py.
+- To get predictions for a specific station you can add/remove names given in the `station_names` list located in predicit.py. 
+- To make predictions for all stations uncomment the `all_stations` variable and add this into the following for loop. 
 ## Requirements
 
 See `requirements.txt` for a complete list. Typical requirements include:

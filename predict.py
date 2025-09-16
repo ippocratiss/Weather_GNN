@@ -2,7 +2,7 @@ from model import Weather_GNN
 import torch 
 from Data import (Get_UK_Stations,Gather_Data,
                   Connect_Graph,Build_Graph,denormalise,
-                  find_station_id) 
+                  find_station_id, find_station_names) 
 from datetime import datetime
 from torch_geometric.loader import DataLoader
 from utils import predict
@@ -13,7 +13,7 @@ import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, WhiteKernel
 import joblib
-
+import os 
 
 #load params from main.py 
 preproc = joblib.load("preproc.joblib")
@@ -41,6 +41,7 @@ for sid in Weather_data.keys():
 edge_index,edge_attr = Connect_Graph(stations_df,SIDs,nearest)
 Graph = Build_Graph(Weather_data,edge_index,edge_attr,pred_window,lookback) 
 
+# set up best model to make prediction. 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 time_step = 49
 n_feat = len(features) 
@@ -51,7 +52,11 @@ pred,targ = predict(test_graph,model,n_feat,pred_window,device)
 
 #Add any valid uk station name below to get prediction. 
 station_names = ['london','bournemouth','glasgow']
+#using all_stations will run predictions for all stations
+#all_stations = find_station_names(SIDs,stations_df)
+
 ids = []
+outdr = os.path.join("Plots")
 for n in station_names:
     id,name = find_station_id(stations_df,n,SIDs)
     ids.append([id,name])
@@ -59,6 +64,7 @@ station_index = [SIDs.index(sid[0]) for sid in ids]
 idx = 0 
 thrs = np.arange(0,13)
 T_input = test_graph.x.view(test_graph.num_nodes, time_step, len(features))[:, -1].cpu().numpy()
+#get predictions, denormalize values and plot. 
 for i in station_index:
     sid = SIDs[i]
     scaler = scalers[sid] 
@@ -91,6 +97,7 @@ for i in station_index:
         ax[1,j].set_title('Residual Error')
         ax[1,j].set_xlabel('Hour Ahead')
         ax[1,j].set_ylabel('Value')
-    idx += 1
     plt.tight_layout()
-    plt.show() 
+    #plt.show() 
+    fig.savefig(os.path.join(outdr, f"{ids[idx][1].replace('/',' and ')}_prediction.png")) 
+    idx += 1

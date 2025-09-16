@@ -6,7 +6,12 @@ import cartopy.feature as cfeature
 import torch 
 from sklearn.metrics import r2_score
 import numpy as np 
-
+''' Use cartopy to visualise graph on a map of the UK. 
+    Args:
+        Weather_Data: Dictonary of station data.
+        sts_df: pandas dictionary of stations.
+        edge_index: tensor of edges that connect stations. 
+        Station_ids: Id numbers of each station.'''
 def Visualise_Graph(Weather_data,sts_df,edge_index,Station_ids):
     station_coords = {
     row['id']: (row['latitude'], row['longitude'])
@@ -42,7 +47,7 @@ def Visualise_Graph(Weather_data,sts_df,edge_index,Station_ids):
     plt.title("UK Weather Stations")
     plt.legend()
     plt.show()
-#Training function 
+''''''
 def train(loader, model, optimizer, loss_fn,nfeat,pstep,device):
     model.train()
     total_loss = 0
