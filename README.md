@@ -1,6 +1,6 @@
-# Weather_GNN
+# Weather forecasting with Graph Neural Networks (WeatherGNN)
 
-Weather_GNN is a Python project for weather forecasting using Graph Neural Networks (GNNs). This repository contains code for data pre-processing, model definition, training, prediction, and visualization of results. 
+WeatherGNN is a Python project for weather forecasting using Graph Neural Networks (GNNs). This repository contains code for data pre-processing, model definition, training, prediction, and visualization of results. 
 
 ## Features
 
@@ -116,3 +116,4 @@ This repository is a private fork. Refer to the upstream [B-Ruggles/Weather_GNN]
 ## Acknowledgements
 
 Adapted from [B-Ruggles/Weather_GNN](https://github.com/B-Ruggles/Weather_GNN).
+
