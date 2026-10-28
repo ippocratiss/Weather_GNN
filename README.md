@@ -1,6 +1,6 @@
 # Weather forecasting with Graph Neural Networks (WeatherGNN)
 
-WeatherGNN is a Python project for weather forecasting using Graph Neural Networks (GNNs) developed by **Ben Ruggles and Ippocratis Saltas**. This repository contains code for data pre-processing, model definition, training, prediction, and visualization of results. 
+WeatherGNN is a Python project for weather forecasting using Graph Neural Networks (GNNs) developed by **Ben Ruggles and Ippocratis Saltas** as part of Ben's internship under Ippocratis' supervision. This repository contains code for data pre-processing, model definition, training, prediction, and visualisation of results. 
 
 ## Features
 
